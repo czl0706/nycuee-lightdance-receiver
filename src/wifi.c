@@ -49,6 +49,14 @@ void wifi_init_sta(void)
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
+
+    nvs_handle_t my_handle;
+    ret = nvs_open("storage", NVS_READWRITE, &my_handle);
+    if (ret != ESP_OK) {
+        printf("Error (%s) opening NVS handle!\n", esp_err_to_name(ret));
+        while (1) {}
+    }
+
     ESP_ERROR_CHECK(ret);
 
     s_wifi_event_group = xEventGroupCreate();
@@ -57,6 +65,24 @@ void wifi_init_sta(void)
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+
+#ifdef USE_STATIC_IP_FROM_NVS
+    uint32_t STAT_IP_ADDR, STAT_GW_ADDR, STAT_NETMASK;
+
+    
+
+    nvs_get_u32(my_handle, "STAT_IP_ADDR", &STAT_IP_ADDR);
+    nvs_get_u32(my_handle, "STAT_GW_ADDR", &STAT_GW_ADDR);
+    nvs_get_u32(my_handle, "STAT_NETMASK", &STAT_NETMASK);
+
+    esp_netif_dhcpc_stop(sta_netif);
+    esp_netif_ip_info_t info_t = {
+        .ip.addr = STAT_IP_ADDR,
+        .gw.addr = STAT_GW_ADDR,
+        .netmask.addr = STAT_NETMASK
+    }; 
+    esp_netif_set_ip_info(sta_netif, &info_t);
+#endif
 
 #ifdef USE_STATIC_IP
     esp_netif_dhcpc_stop(sta_netif);
@@ -84,12 +110,31 @@ void wifi_init_sta(void)
                                                         NULL,
                                                         &instance_got_ip));
 
+// #ifdef USE_WIFI_FROM_NVS
+//     char WIFI_SSID[100];
+//     char WIFI_PASS[100];
+
+//     size_t len = 100;
+//     nvs_get_str(my_handle, "WIFI_SSID", WIFI_SSID, &len);
+//     len = 100;
+//     nvs_get_str(my_handle, "WIFI_PASS", WIFI_PASS, &len);
+
+//     wifi_config_t wifi_config = {
+//         .sta = {
+//             .ssid = WIFI_SSID,
+//             .password = WIFI_PASS,
+//         },
+//     };
+// #else 
+// #endif
+
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = WIFI_SSID,
             .password = WIFI_PASS,
         },
     };
+
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -111,7 +156,9 @@ void wifi_init_sta(void)
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
                  WIFI_SSID, WIFI_PASS);
+        while (1) {}
     } else {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
+        while (1) {}
     }
 }

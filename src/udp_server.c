@@ -147,12 +147,13 @@ static void udp_server_task(void *pvParameters)
         }
         ESP_LOGI(TAG, "Socket created");
 
-        struct timeval timeout = {
-            .tv_sec = 30,
-            .tv_usec = 0
-        };
+        // Set timeout
+        // struct timeval timeout = {
+        //     .tv_sec = 30,
+        //     .tv_usec = 0
+        // };
         
-        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
+        // setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
 
         int err = bind(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
         if (err < 0) {

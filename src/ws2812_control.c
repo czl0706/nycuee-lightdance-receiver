@@ -12,6 +12,9 @@
 
 #define LED_BUFFER_ITEMS	(NUM_LEDS * BITS_PER_LED_CMD)
 
+const uint8_t rOffset = 1, gOffset = 2, bOffset = 0;
+static uint8_t brightness = 255;
+
 // These values are determined by measuring pulse timing with logic analyzer and adjusting to match datasheet. 
 #define T0H	14  // 0 bit high time
 #define T1H	52  // 1 bit high time
@@ -69,4 +72,26 @@ static void setup_rmt_data_buffer(struct led_state new_state)
       mask >>= 1;
     }
   }
+}
+
+uint32_t ws2812_RGB2VAL(uint32_t c) {
+    uint8_t r = (uint8_t)(c >> 16), g = (uint8_t)(c >> 8), b = (uint8_t)c;
+    
+    if (brightness) { // See notes in setBrightness()
+      r = (r * brightness) >> 8;
+      g = (g * brightness) >> 8;
+      b = (b * brightness) >> 8;
+    }
+    
+    return (r << (rOffset * 8)) | (g << (gOffset * 8)) | (b << (bOffset * 8));
+}
+
+void ws2812_setBrightness(uint8_t b) {
+    brightness = b;
+}
+
+void ws2812_RGB2VAL_table(const uint32_t *c, uint32_t *cout, int len) {
+    for (uint8_t i = 0; i < len; i++) {
+        cout[i] = ws2812_RGB2VAL(c[i]);
+    }
 }

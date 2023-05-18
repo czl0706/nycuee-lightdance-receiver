@@ -7,7 +7,7 @@
 
 #define LED_RMT_TX_CHANNEL		0
 #define LED_RMT_TX_GPIO			32
-#define NUM_LEDS	            256
+#define NUM_LEDS	            288
 
 // This structure is used for indicating what the colors of each LED should be set to.
 // There is a 32bit value for each LED. Only the lower 3 bytes are used and they hold the
@@ -23,5 +23,9 @@ esp_err_t ws2812_control_init(void);
 // This function will block the current task until the RMT peripheral is finished sending 
 // the entire sequence.
 esp_err_t ws2812_write_leds(struct led_state new_state);
+
+uint32_t ws2812_RGB2VAL(uint32_t c);
+void ws2812_setBrightness(uint8_t b);
+void ws2812_RGB2VAL_table(const uint32_t *c, uint32_t *cout, int len);
 
 #endif

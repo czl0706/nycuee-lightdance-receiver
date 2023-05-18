@@ -8,28 +8,37 @@
 #include "udp_server.h"
 #include "wifi.h"
 #include "ws2812_control.h"
+// #include "ws2812_config.h"
 
 TaskHandle_t ws2812_task_c1;
 
 buffer_t *buffer;
 
-const uint32_t color_table[] = {
+const uint8_t nums_of_colors = 8;
+uint32_t color_table[8] = {
     0xFF0000, 0xFFFF00, 0x00FF00, 0x00FFFF, 0x0000FF, 0xFF00FF, 0xFFFFFF, 0x000000};
 
-// bool restart = true;
-// int last_value;
+uint32_t new_color_table[8];
+
+const uint32_t nums_of_bodyparts = 8;
+const uint32_t t_nums_of_light[] = {
+    60, 60, 30, 30, 24, 30, 30, 24
+};
 
 void ws2812_task(void *pvParameters) {
     static struct led_state new_state;
+    static uint32_t acc = 0;
     for (;;) {
         if (buffer->available) {
             // ESP_LOGI("WS2812", "%d", buffer->data[0]);
-            
-            for (int i = 0; i < 7; i++) {
-                for (int j = 0; j < 32; j++) {
-                    new_state.leds[i * 32 + j] = color_table[buffer->data[i]];
+            acc = 0;
+            for (int i = 0; i < nums_of_bodyparts; i++) {
+                for (int j = 0; j < t_nums_of_light[i]; j++) {
+                    new_state.leds[acc] = new_color_table[buffer->data[i]];
+                    acc += 1;
                 }   
             }
+            ESP_LOGI("WS2812", "%d", acc);
             ws2812_write_leds(new_state);
             buffer->available = false;
         }
@@ -42,6 +51,22 @@ void app_main() {
     gpio_set_direction(2, GPIO_MODE_OUTPUT);
     gpio_set_level(2, 1);
     
+    ws2812_setBrightness(10);
+    ws2812_RGB2VAL_table(color_table, new_color_table, 8);
+
+    // For testing
+    // ws2812_control_init();
+    // static struct led_state new_state;
+    // for (;;) {
+    //     for (int i = 0; i < 8; i++) {
+    //         for (int j = 0; j < NUM_LEDS; j++) {
+    //             new_state.leds[j] = new_color_table[i];
+    //         }   
+    //         ws2812_write_leds(new_state);
+    //         vTaskDelay(300 / portTICK_PERIOD_MS);
+    //     }
+    // }
+
     buffer = malloc(sizeof(buffer_t));
     buffer->available = false;
     // uart_init();
@@ -60,7 +85,6 @@ void app_main() {
     );
 
     gpio_set_level(2, 0);
-
 
     // uint8_t test[] = "Hello, World!\n";
     // uart_write_bytes(UART_NUM_0, (const char*)data, len);
